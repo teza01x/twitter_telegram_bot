@@ -1,0 +1,4 @@
+telebot
+asyncio
+aiohttp
+pyTelegramBotAPI
