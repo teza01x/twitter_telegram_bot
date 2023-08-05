@@ -1,5 +1,6 @@
 import asyncio
 import telebot
+from cachetools import cached, TTLCache
 from datetime import datetime, timedelta, time
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types
@@ -10,6 +11,7 @@ from config import *
 
 
 bot = AsyncTeleBot(telegram_token)
+cache = TTLCache(maxsize=1000, ttl=60)
 
 
 @bot.message_handler(commands=['start', 'menu'])
@@ -51,6 +53,10 @@ async def start(message):
                     add_user_to_ver_db(user_id, username)
                 except telebot.apihelper.ApiException as error:
                     print(error)
+            else:
+                username = message.chat.username
+                update_username(user_id, username)
+
 
             button_list1 = [
                 types.InlineKeyboardButton(btn['start_apply'], callback_data="start_apply"),
@@ -61,7 +67,7 @@ async def start(message):
             if old_menu:
                 try:
                     await bot.delete_message(message.chat.id, old_menu)
-                except telebot.apihelper.ApiException as error:
+                except Exception as error:
                     pass
 
             menu_message = await bot.send_message(message.chat.id, dct["start"], reply_markup=reply_markup)
@@ -441,25 +447,50 @@ async def callback_query(call):
         user_twitter = get_user_info(user_id)
         user_app_number = get_number_app(user_id)
 
-        update_verif_status_menu(user_id, 3)
-        username = get_username(message_id)
-        link_to_chat = 'https://t.me/' + username
 
         button_list1 = [
-            types.InlineKeyboardButton(btn['contact'], url=link_to_chat),
+            types.InlineKeyboardButton(btn['decline_reason1'], callback_data="decline_reason1"),
+        ]
+        button_list2 = [
+            types.InlineKeyboardButton(btn['decline_reason2'], callback_data="decline_reason2"),
         ]
 
-        reply_markup = types.InlineKeyboardMarkup([button_list1])
+        reply_markup = types.InlineKeyboardMarkup([button_list1, button_list2])
         await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                    text=dct["users_apply_declined"].format(user_app_number, username, user_twitter[0]),
+                                    text=dct["users_apply_declined"].format(user_app_number, user_twitter[0]),
                                     reply_markup=reply_markup)
-        await bot.send_message(user_id, dct['once_refusal_verif'])
 
     elif call.data == "press_complete_button":
         user_id = call.message.chat.id
         task_id = call.message.message_id
         add_task_id_to_user_task_completed(user_id, task_id)
         await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+
+    elif call.data == "decline_reason1":
+        message_id = call.message.message_id
+        user_id = get_user_id(message_id)
+        user_twitter = get_user_info(user_id)
+        user_app_number = get_number_app(user_id)
+
+        update_verif_status_menu(user_id, 3)
+
+        await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                    text=dct["users_apply_declined"].format(user_app_number, user_twitter[0]))
+
+        await bot.send_message(chat_id=user_id, text=dct['deacline_reason1'])
+
+    elif call.data == "decline_reason2":
+        message_id = call.message.message_id
+        user_id = get_user_id(message_id)
+        user_twitter = get_user_info(user_id)
+        user_app_number = get_number_app(user_id)
+
+        update_verif_status_menu(user_id, 3)
+
+        await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                    text=dct["users_apply_declined"].format(user_app_number, user_twitter[0]))
+
+        await bot.send_message(chat_id=user_id, text=dct['deacline_reason2'])
 
 
 @bot.message_handler(func=lambda message: True)
@@ -534,6 +565,7 @@ async def handle_message(message):
             add_start_menu_id(user_id, menu_id)
 
 
+@cached(cache)
 async def order_create_status_check():
     while True:
         try:
@@ -559,9 +591,11 @@ async def order_create_status_check():
                         pass
         except telebot.apihelper.ApiException as e:
             print(e)
+        cache.clear()
         await asyncio.sleep(10)
 
 
+@cached(cache)
 async def orders_mailing():
     while True:
         try:
@@ -622,6 +656,7 @@ async def orders_mailing():
                 change_order_status(order_id)
         except telebot.apihelper.ApiException as e:
             print(e)
+        cache.clear()
         await asyncio.sleep(10)
 
 

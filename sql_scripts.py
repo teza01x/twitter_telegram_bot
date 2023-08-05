@@ -545,3 +545,15 @@ def add_task_id_to_user_task_completed(user_id, task_id):
 
     conn.commit()
     conn.close()
+
+
+def update_username(user_id, username):
+    conn = sqlite3.connect(data_base)
+    cursor = conn.cursor()
+
+    cursor.execute("UPDATE user SET username = ? WHERE user_id = ?", (username, user_id,))
+
+    cursor.execute("UPDATE verified_user SET username = ? WHERE user_id = ?", (username, user_id,))
+
+    conn.commit()
+    conn.close()
