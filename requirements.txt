@@ -2,3 +2,4 @@ telebot
 asyncio
 aiohttp
 pyTelegramBotAPI
+cachetools
