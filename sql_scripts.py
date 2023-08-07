@@ -337,7 +337,7 @@ def add_user_in_task_order(order_id, user_id):
 def get_verified_users():
     conn = sqlite3.connect(data_base)
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM verified_user")
+    cursor.execute("SELECT user_id FROM user WHERE status_verif = ?", (1,))
 
     result = cursor.fetchall()
     result = [i[0] for i in result]

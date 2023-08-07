@@ -661,7 +661,7 @@ async def orders_mailing():
 
 
 async def main():
-    bot_task = asyncio.create_task(bot.polling())
+    bot_task = asyncio.create_task(bot.polling(non_stop=True, request_timeout=120))
     order_mailing_task = asyncio.create_task(orders_mailing())
     order_creating_status_task = asyncio.create_task(order_create_status_check())
 
